@@ -1,26 +1,181 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  DevPulse design tokens.
+  Dark is the default theme; light mode is an opt-in via the `light` class on <html>.
+*/
+:root,
+.light {
+  --background: #f6f7f9;
+  --foreground: #0d1117;
+  --surface: #ffffff;
+  --surface-2: #f0f2f6;
+  --surface-3: #e6e9f0;
+  --border: #dfe3ea;
+  --border-strong: #c7cdd8;
+  --muted: #5c6675;
+  --muted-foreground: #6b7686;
+  --accent: #4f46e5;
+  --accent-foreground: #ffffff;
+  --accent-soft: rgba(79, 70, 229, 0.1);
+  --ring: rgba(79, 70, 229, 0.45);
+  --success: #12805c;
+  --success-soft: rgba(18, 128, 92, 0.12);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.12);
+  --danger: #c0362c;
+  --danger-soft: rgba(192, 54, 44, 0.12);
+  --info: #1d6fd0;
+  --info-soft: rgba(29, 111, 208, 0.12);
+  --shadow-color: 220 20% 40%;
+}
+
+.dark {
+  --background: #08090c;
+  --foreground: #e8ecf4;
+  --surface: #0e1015;
+  --surface-2: #151820;
+  --surface-3: #1c202a;
+  --border: #22262f;
+  --border-strong: #313742;
+  --muted: #99a2b3;
+  --muted-foreground: #8a93a5;
+  --accent: #8b8cf8;
+  --accent-foreground: #0b0c10;
+  --accent-soft: rgba(139, 140, 248, 0.14);
+  --ring: rgba(139, 140, 248, 0.5);
+  --success: #3ddc97;
+  --success-soft: rgba(61, 220, 151, 0.14);
+  --warning: #f0b45f;
+  --warning-soft: rgba(240, 180, 95, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --info: #6ea8fe;
+  --info-soft: rgba(110, 168, 254, 0.14);
+  --shadow-color: 220 40% 2%;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-card: 0.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: 999px;
+}
+
+@keyframes dp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: dp-fade-in 0.25s ease-out both;
+}
+
+@keyframes dp-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface-2);
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.06) 40%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  animation: dp-shimmer 1.6s infinite;
+  content: "";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
