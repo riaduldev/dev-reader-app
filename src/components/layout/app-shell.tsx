@@ -1,5 +1,6 @@
 "use client";
 
+import { Search } from "lucide-react";
 import * as React from "react";
 
 import { GlobalSearch } from "@/components/layout/global-search";
@@ -8,6 +9,8 @@ import { RefreshButton } from "@/components/layout/refresh-button";
 import { MobileMenuButton, Sidebar } from "@/components/layout/sidebar";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { UserMenu, type UserMenuUser } from "@/components/layout/user-menu";
+import { LanguageSwitcher, useT } from "@/lib/i18n/client";
+import { Button } from "@/components/ui/button";
 
 export interface ShellNotification {
   id: string;
@@ -32,7 +35,9 @@ export function AppShell({
   dateLabel: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   return (
     <div className="flex min-h-dvh bg-[var(--background)]">
@@ -46,15 +51,26 @@ export function AppShell({
         <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--border)] bg-[var(--background)]/85 px-3 backdrop-blur sm:px-5">
           <MobileMenuButton onClick={() => setSidebarOpen(true)} />
 
-          <div className="hidden flex-1 sm:block">
+          <div className="hidden min-w-0 flex-1 sm:block">
             <GlobalSearch />
           </div>
-          <div className="flex-1 sm:hidden" />
+          <div className="flex flex-1 items-center sm:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSearchOpen(true)}
+              aria-label={t.common.search}
+              title={t.common.search}
+            >
+              <Search className="size-4" />
+            </Button>
+          </div>
 
           <span className="hidden text-xs text-[var(--muted-foreground)] xl:block">
             {dateLabel}
           </span>
 
+          <LanguageSwitcher signedIn={Boolean(user)} />
           <RefreshButton enabled={Boolean(user)} />
           <NotificationsBell
             initialNotifications={notifications}
@@ -65,9 +81,33 @@ export function AppShell({
         </header>
 
         <main className="flex-1 px-3 py-5 sm:px-5 lg:px-8">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <div className="mx-auto w-full max-w-7xl space-y-5">
+            {!user && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm">
+                <p className="text-[var(--muted-foreground)]">
+                  <span className="font-medium text-[var(--foreground)]">
+                    {t.dashboard.anonymousTitle}
+                  </span>{" "}
+                  {t.dashboard.anonymousBody}
+                </p>
+                <a
+                  href="/login"
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-[var(--surface-3)]"
+                >
+                  {t.common.login}
+                </a>
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
+
+      <GlobalSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        showTrigger={false}
+      />
     </div>
   );
 }

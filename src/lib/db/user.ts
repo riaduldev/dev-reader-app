@@ -123,7 +123,13 @@ export async function updatePreferences(
   patch: Partial<
     Pick<
       DatabaseUserPreferences,
-      "theme" | "language" | "density" | "categories" | "email_digest"
+      | "theme"
+      | "language"
+      | "density"
+      | "categories"
+      | "technologies"
+      | "onboarding_completed"
+      | "email_digest"
     >
   >,
 ): Promise<void> {

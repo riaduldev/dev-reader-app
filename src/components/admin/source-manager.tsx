@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Pencil, Plus, RefreshCw, TestTube2 } from "lucide-react";
+import { Loader2, Pencil, Plus, RefreshCw, TestTube2, Trash2 } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
 
@@ -23,28 +23,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, categoryLabel } from "@/lib/categories";
+import { useLanguage, useT } from "@/lib/i18n/client";
 import type { DatabaseSource } from "@/lib/db/types";
-import { relativeTimeBn } from "@/lib/utils";
-
-const RELIABILITY_LABELS: Record<string, string> = {
-  official: "অফিসিয়াল",
-  trusted: "বিশ্বস্ত",
-  community: "কমিউনিটি",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-  rss: "RSS",
-  atom: "Atom",
-  json_api: "JSON API",
-  html_index: "ইন্ডেক্স (ফিড নেই)",
-};
+import { formatRelativeTime } from "@/lib/utils";
 
 export function SourceManager({ initialSources }: { initialSources: DatabaseSource[] }) {
+  const t = useT();
+  const [language] = useLanguage();
   const [sources, setSources] = React.useState(initialSources);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<DatabaseSource | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
+  const [deleting, setDeleting] = React.useState<DatabaseSource | null>(null);
+  const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
 
   const [form, setForm] = React.useState({
@@ -59,6 +51,19 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
     notes: "",
     is_active: true,
   });
+
+  const typeLabels: Record<string, string> = {
+    rss: t.admin.typeRss,
+    atom: t.admin.typeAtom,
+    json_api: t.admin.typeJson,
+    html_index: t.admin.typeIndex,
+  };
+
+  const reliabilityLabels: Record<string, string> = {
+    official: t.admin.reliabilityOfficial,
+    trusted: t.admin.reliabilityTrusted,
+    community: t.admin.reliabilityCommunity,
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -110,8 +115,11 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
           fetch_interval_minutes: Number(form.fetch_interval_minutes),
         }),
       });
-      const json = (await response.json()) as { error?: string; source?: DatabaseSource };
-      if (!response.ok) throw new Error(json.error ?? "সংরক্ষণ ব্যর্থ।");
+      const json = (await response.json()) as {
+        error?: string;
+        source?: DatabaseSource;
+      };
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
 
       const saved = json.source!;
       setSources((items) =>
@@ -120,9 +128,9 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
           : [...items, saved],
       );
       setDialogOpen(false);
-      toast.success(editing ? "সোর্স আপডেট হয়েছে।" : "সোর্স যোগ হয়েছে।");
+      toast.success(editing ? t.admin.editSource : t.admin.addSource);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "সংরক্ষণ ব্যর্থ।");
+      setFormError(error instanceof Error ? error.message : t.errors.generic);
     }
   };
 
@@ -134,15 +142,15 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
         body: JSON.stringify({ id: source.id, is_active: !source.is_active }),
       });
       const json = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(json.error ?? "আপডেট ব্যর্থ।");
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
       setSources((items) =>
         items.map((item) =>
           item.id === source.id ? { ...item, is_active: !item.is_active } : item,
         ),
       );
-      toast.success(source.is_active ? "সোর্স নিষ্ক্রিয় করা হয়েছে।" : "সোর্স সক্রিয় করা হয়েছে।");
+      toast.success(t.admin.sourceActive);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "আপডেট ব্যর্থ।");
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
     }
   };
 
@@ -152,15 +160,19 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
       const response = await fetch(`/api/admin/sources/${source.id}/test`, {
         method: "POST",
       });
-      const json = (await response.json()) as { ok?: boolean; message?: string; error?: string };
-      if (!response.ok) throw new Error(json.error ?? "টেস্ট ব্যর্থ।");
+      const json = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
       if (json.ok) {
-        toast.success(json.message ?? "টেস্ট সফল।");
+        toast.success(json.message ?? t.common.test);
       } else {
-        toast.error(json.message ?? "টেস্ট ব্যর্থ।");
+        toast.error(json.message ?? t.errors.generic);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "টেস্ট ব্যর্থ।");
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
     } finally {
       setBusyId(null);
     }
@@ -175,16 +187,37 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
       const json = (await response.json()) as {
         error?: string;
         newArticles?: number;
-        status?: string;
       };
-      if (!response.ok) throw new Error(json.error ?? "সিঙ্ক ব্যর্থ।");
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
       toast.success(
-        `সিঙ্ক সম্পন্ন — ${json.newArticles ?? 0} টি নতুন নিবন্ধ যোগ হয়েছে।`,
+        `${t.dashboard.refreshDone
+          .replace("{ok}", "1")
+          .replace("{count}", String(json.newArticles ?? 0))}`,
       );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "সিঙ্ক ব্যর্থ।");
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const deleteSource = async () => {
+    if (!deleting) return;
+    setDeletingId(deleting.id);
+    try {
+      const response = await fetch(
+        `/api/admin/sources?id=${encodeURIComponent(deleting.id)}`,
+        { method: "DELETE" },
+      );
+      const json = (await response.json()) as { error?: string };
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
+      setSources((items) => items.filter((item) => item.id !== deleting.id));
+      toast.success(t.admin.deleteSource);
+      setDeleting(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -192,12 +225,13 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[var(--muted-foreground)]">
-          {sources.length} টি সোর্স ·{" "}
-          {sources.filter((source) => source.is_active).length} টি সক্রিয়
+          {sources.length} ·{" "}
+          {sources.filter((source) => source.is_active).length}{" "}
+          {t.admin.sourceActive}
         </p>
         <Button onClick={openCreate} size="sm">
           <Plus className="size-4" />
-          নতুন সোর্স
+          {t.admin.addSource}
         </Button>
       </div>
 
@@ -205,13 +239,19 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-[var(--surface-2)] text-xs uppercase tracking-wide text-[var(--muted-foreground)]">
             <tr>
-              <th className="px-4 py-2.5 font-medium">সোর্স</th>
-              <th className="px-4 py-2.5 font-medium">ক্যাটাগরি</th>
-              <th className="px-4 py-2.5 font-medium">টাইপ</th>
-              <th className="px-4 py-2.5 font-medium">নির্ভরযোগ্যতা</th>
-              <th className="px-4 py-2.5 font-medium">সর্বশেষ সাফল্য</th>
-              <th className="px-4 py-2.5 font-medium">অবস্থা</th>
-              <th className="px-4 py-2.5 text-right font-medium">অ্যাকশন</th>
+              <th className="px-4 py-2.5 font-medium">{t.admin.sourceName}</th>
+              <th className="px-4 py-2.5 font-medium">
+                {t.admin.sourceCategory}
+              </th>
+              <th className="px-4 py-2.5 font-medium">{t.admin.sourceType}</th>
+              <th className="px-4 py-2.5 font-medium">
+                {t.admin.sourceReliability}
+              </th>
+              <th className="px-4 py-2.5 font-medium">
+                {t.admin.lastSuccess}
+              </th>
+              <th className="px-4 py-2.5 font-medium">{t.common.source}</th>
+              <th className="px-4 py-2.5 text-right font-medium">⋯</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -229,23 +269,24 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
                   )}
                 </td>
                 <td className="px-4 py-3 text-xs">
-                  {CATEGORIES.find((item) => item.id === source.category)?.label ??
-                    source.category}
+                  {categoryLabel(source.category, t)}
                 </td>
                 <td className="px-4 py-3 text-xs">
-                  {TYPE_LABELS[source.source_type] ?? source.source_type}
+                  {typeLabels[source.source_type] ?? source.source_type}
                 </td>
                 <td className="px-4 py-3 text-xs">
-                  {RELIABILITY_LABELS[source.reliability] ?? source.reliability}
+                  {reliabilityLabels[source.reliability] ?? source.reliability}
                 </td>
                 <td className="px-4 py-3 text-xs text-[var(--muted-foreground)]">
-                  {source.last_success_at ? relativeTimeBn(source.last_success_at) : "—"}
+                  {source.last_success_at
+                    ? formatRelativeTime(source.last_success_at, language)
+                    : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <Switch
                     checked={source.is_active}
                     onCheckedChange={() => toggleActive(source)}
-                    aria-label={`${source.name} সক্রিয়/নিষ্ক্রিয়`}
+                    aria-label={source.name}
                   />
                 </td>
                 <td className="px-4 py-3">
@@ -253,8 +294,8 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="টেস্ট"
-                      title="ফিড টেস্ট করুন"
+                      aria-label={t.admin.testSource}
+                      title={t.admin.testSource}
                       disabled={busyId === source.id}
                       onClick={() => testSource(source)}
                     >
@@ -267,8 +308,8 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="সিঙ্ক"
-                      title="এখনই সিঙ্ক করুন"
+                      aria-label={t.admin.syncSource}
+                      title={t.admin.syncSource}
                       disabled={busyId === source.id}
                       onClick={() => syncSource(source)}
                     >
@@ -277,11 +318,21 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="সম্পাদনা"
-                      title="সম্পাদনা"
+                      aria-label={t.admin.editSource}
+                      title={t.admin.editSource}
                       onClick={() => openEdit(source)}
                     >
                       <Pencil className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={t.admin.deleteSource}
+                      title={t.admin.deleteSource}
+                      className="text-[var(--danger)] hover:bg-[var(--danger-soft)]"
+                      onClick={() => setDeleting(source)}
+                    >
+                      <Trash2 className="size-4" />
                     </Button>
                   </div>
                 </td>
@@ -291,20 +342,49 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
         </table>
       </div>
 
+      <Dialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.admin.deleteConfirm}</DialogTitle>
+            <DialogDescription>{t.admin.deleteWarning}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setDeleting(null)}
+              disabled={deletingId !== null}
+            >
+              {t.common.cancel}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deletingId !== null}
+              onClick={deleteSource}
+            >
+              {deletingId !== null && <Loader2 className="size-4 animate-spin" />}
+              {t.admin.deleteSource}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{editing ? "সোর্স সম্পাদনা" : "নতুন সোর্স যোগ করুন"}</DialogTitle>
-            <DialogDescription>
-              ফিড বা API URL যোগ করুন। কোনো machine-readable ফিড না থাকলে{" "}
-              <span className="font-medium">ইন্ডেক্স</span> টাইপ বেছে নিন — DevPulse
-              স্ক্র্যাপ করে না।
-            </DialogDescription>
+            <DialogTitle>
+              {editing ? t.admin.editSourceTitle : t.admin.newSource}
+            </DialogTitle>
+            <DialogDescription>{t.admin.sourceDescription}</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="source-name">নাম</Label>
+              <Label htmlFor="source-name">{t.admin.sourceName}</Label>
               <Input
                 id="source-name"
                 value={form.name}
@@ -312,46 +392,50 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="source-slug">স্লাগ</Label>
+              <Label htmlFor="source-slug">{t.admin.sourceSlug}</Label>
               <Input
                 id="source-slug"
                 value={form.slug}
                 onChange={(event) => setForm({ ...form, slug: event.target.value })}
-                placeholder="example-news"
+                placeholder={t.admin.sourceSlugPlaceholder}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="source-feed">ফিড / API URL</Label>
+              <Label htmlFor="source-feed">{t.admin.sourceFeed}</Label>
               <Input
                 id="source-feed"
                 value={form.feed_url}
-                onChange={(event) => setForm({ ...form, feed_url: event.target.value })}
-                placeholder="https://example.com/feed.xml"
+                onChange={(event) =>
+                  setForm({ ...form, feed_url: event.target.value })
+                }
+                placeholder={t.admin.sourceFeedPlaceholder}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="source-site">ওয়েবসাইট URL</Label>
+              <Label htmlFor="source-site">{t.admin.sourceSite}</Label>
               <Input
                 id="source-site"
                 value={form.site_url}
-                onChange={(event) => setForm({ ...form, site_url: event.target.value })}
-                placeholder="https://example.com"
+                onChange={(event) =>
+                  setForm({ ...form, site_url: event.target.value })
+                }
+                placeholder={t.admin.sourceSitePlaceholder}
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label>ক্যাটাগরি</Label>
+              <Label>{t.admin.sourceCategory}</Label>
               <Select
                 value={form.category}
                 onValueChange={(value) => setForm({ ...form, category: value })}
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger aria-label={t.admin.sourceCategory}>
+                  <SelectValue>{categoryLabel(form.category, t)}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CATEGORIES.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
-                      {category.label}
+                      {categoryLabel(category.id, t)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -359,46 +443,54 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
             </div>
 
             <div className="space-y-1.5">
-              <Label>সোর্স টাইপ</Label>
+              <Label>{t.admin.sourceType}</Label>
               <Select
                 value={form.source_type}
                 onValueChange={(value) =>
                   setForm({ ...form, source_type: value as typeof form.source_type })
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger aria-label={t.admin.sourceType}>
+                  <SelectValue>{typeLabels[form.source_type] ?? form.source_type}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rss">RSS</SelectItem>
-                  <SelectItem value="atom">Atom</SelectItem>
-                  <SelectItem value="json_api">JSON API</SelectItem>
-                  <SelectItem value="html_index">ইন্ডেক্স (ফিড নেই)</SelectItem>
+                  <SelectItem value="rss">{t.admin.typeRss}</SelectItem>
+                  <SelectItem value="atom">{t.admin.typeAtom}</SelectItem>
+                  <SelectItem value="json_api">{t.admin.typeJson}</SelectItem>
+                  <SelectItem value="html_index">{t.admin.typeIndex}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label>নির্ভরযোগ্যতা</Label>
+              <Label>{t.admin.sourceReliability}</Label>
               <Select
                 value={form.reliability}
                 onValueChange={(value) =>
                   setForm({ ...form, reliability: value as typeof form.reliability })
                 }
               >
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger aria-label={t.admin.sourceReliability}>
+                  <SelectValue>
+                    {reliabilityLabels[form.reliability] ?? form.reliability}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="official">অফিসিয়াল</SelectItem>
-                  <SelectItem value="trusted">বিশ্বস্ত</SelectItem>
-                  <SelectItem value="community">কমিউনিটি</SelectItem>
+                  <SelectItem value="official">
+                    {t.admin.reliabilityOfficial}
+                  </SelectItem>
+                  <SelectItem value="trusted">
+                    {t.admin.reliabilityTrusted}
+                  </SelectItem>
+                  <SelectItem value="community">
+                    {t.admin.reliabilityCommunity}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="source-interval">ফেচ ইন্টারভাল (মিনিট)</Label>
+              <Label htmlFor="source-interval">{t.admin.sourceInterval}</Label>
               <Input
                 id="source-interval"
                 type="number"
@@ -406,26 +498,31 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
                 max={1440}
                 value={form.fetch_interval_minutes}
                 onChange={(event) =>
-                  setForm({ ...form, fetch_interval_minutes: Number(event.target.value) })
+                  setForm({
+                    ...form,
+                    fetch_interval_minutes: Number(event.target.value),
+                  })
                 }
               />
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="source-notes">নোট</Label>
+              <Label htmlFor="source-notes">{t.admin.sourceNotes}</Label>
               <Input
                 id="source-notes"
                 value={form.notes}
                 onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                placeholder="যেমন: অফিসিয়াল ফিড, robots.txt মেনে চলা হয়"
+                placeholder={t.admin.sourceNotesPlaceholder}
               />
             </div>
 
             <div className="flex items-center justify-between gap-3 sm:col-span-2">
-              <span className="text-sm">সোর্স সক্রিয় রাখুন</span>
+              <span className="text-sm">{t.admin.sourceActive}</span>
               <Switch
                 checked={form.is_active}
-                onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
+                onCheckedChange={(checked) =>
+                  setForm({ ...form, is_active: checked })
+                }
               />
             </div>
           </div>
@@ -438,9 +535,9 @@ export function SourceManager({ initialSources }: { initialSources: DatabaseSour
 
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-              বাতিল
+              {t.common.cancel}
             </Button>
-            <Button onClick={save}>সংরক্ষণ</Button>
+            <Button onClick={save}>{t.common.save}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

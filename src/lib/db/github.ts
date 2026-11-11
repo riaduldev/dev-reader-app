@@ -92,7 +92,7 @@ export async function listGithubRepoCount(): Promise<number> {
   return count ?? 0;
 }
 
-/** Stores freshly collected search results with their DevPulse score. */
+/** Stores freshly collected search results with their DevReaderHub score. */
 export async function storeGithubRepos(
   repos: GithubRepoRaw[],
   query: string,

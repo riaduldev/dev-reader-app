@@ -24,6 +24,21 @@ export interface ArticleListResult {
 
 const ARTICLE_SELECT = "*, sources(name, slug, site_url, reliability)";
 
+/**
+ * Escapes a user supplied search term for a PostgREST `ilike` filter.
+ *
+ * Commas and parentheses would break the `or(...)` filter syntax and the
+ * wildcard characters `%`, `_` and `\` would broaden the match, so they are
+ * escaped with a backslash (PostgREST/Postgres `like` escape character).
+ */
+export function escapeLikePattern(value: string): string {
+  return value
+    .replace(/[%_\\]/g, (char) => `\\${char}`)
+    .replace(/[,()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export async function listArticles(query: ArticleQuery = {}): Promise<ArticleListResult> {
   const supabase = await createReadClient();
   const page = Math.max(1, query.page ?? 1);
@@ -32,13 +47,17 @@ export async function listArticles(query: ArticleQuery = {}): Promise<ArticleLis
 
   let builder = supabase
     .from("articles")
-    .select(ARTICLE_SELECT, { count: "exact" })
-    .order("published_at", { ascending: query.sort !== "oldest" });
+    .select(ARTICLE_SELECT, { count: "exact" });
 
+  // The order chain must contain every sort key exactly once: Postgres keeps
+  // the position of the first occurrence of a repeated ORDER BY expression,
+  // so ordering by published_at first would silently override "importance".
   if (query.sort === "importance") {
     builder = builder
       .order("importance", { ascending: false, nullsFirst: false })
       .order("published_at", { ascending: false });
+  } else {
+    builder = builder.order("published_at", { ascending: query.sort !== "oldest" });
   }
 
   if (query.category && query.category !== "all") {
@@ -60,10 +79,10 @@ export async function listArticles(query: ArticleQuery = {}): Promise<ArticleLis
     builder = builder.not("ai_summary_bn", "is", null);
   }
   if (query.q) {
-    const safe = query.q.replace(/[,%()]/g, " ").trim();
-    if (safe.length > 0) {
+    const pattern = escapeLikePattern(query.q);
+    if (pattern) {
       builder = builder.or(
-        `title.ilike.%${safe}%,description.ilike.%${safe}%,ai_summary_bn.ilike.%${safe}%`,
+        `title.ilike.%${pattern}%,description.ilike.%${pattern}%,ai_summary_bn.ilike.%${pattern}%`,
       );
     }
   }

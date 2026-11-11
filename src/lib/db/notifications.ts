@@ -1,5 +1,4 @@
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
-import type { DatabaseNotification } from "@/lib/db/types";
 
 export interface NotificationInput {
   title: string;
@@ -40,17 +39,3 @@ export async function notifyAllUsers(input: NotificationInput): Promise<number> 
   return rows.length;
 }
 
-export async function listRecentNotifications(
-  limit = 20,
-): Promise<DatabaseNotification[]> {
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) {
-    throw new Error(`Failed to load notifications: ${error.message}`);
-  }
-  return (data ?? []) as DatabaseNotification[];
-}

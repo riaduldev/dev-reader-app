@@ -24,7 +24,7 @@ export interface FetchOptions {
 }
 
 const DEFAULT_USER_AGENT =
-  "DevPulse/0.1 (+https://github.com/devpulse; developer news aggregator)";
+  "DevReaderHub/0.1 (+https://github.com/devreaderhub; developer news aggregator)";
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

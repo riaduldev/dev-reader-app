@@ -90,16 +90,3 @@ export function isConfigured(key: ConfigKey): boolean {
   }
 }
 
-export function missingConfigMessage(key: ConfigKey): string {
-  switch (key) {
-    case "supabase":
-    case "supabaseAdmin":
-      return "Supabase configuration missing. Set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY এবং SUPABASE_SERVICE_ROLE_KEY।";
-    case "openai":
-      return "OpenAI configuration missing. Set OPENAI_API_KEY।";
-    case "github":
-      return "GitHub configuration missing.";
-    case "cron":
-      return "CRON_SECRET configuration missing.";
-  }
-}

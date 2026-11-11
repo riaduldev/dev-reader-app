@@ -39,7 +39,7 @@ export class AiError extends Error {
   }
 }
 
-const SYSTEM_PROMPT = `You are DevPulse, an editor that analyses developer technology news for a Bangla-speaking audience.
+const SYSTEM_PROMPT = `You are DevReaderHub, an editor that analyses developer technology news for a Bangla-speaking audience.
 
 Rules:
 - Write every prose field in natural Bangla (বাংলা) while keeping technical terms (React, Next.js, TypeScript, LLM, CVE, Kubernetes, API …) in English.
@@ -102,7 +102,7 @@ export async function analyzeArticle(input: AnalyzeInput): Promise<AiAnalysis | 
     response_format: {
       type: "json_schema",
       json_schema: {
-        name: "devpulse_article_analysis",
+        name: "devreaderhub_article_analysis",
         strict: true,
         schema: {
           type: "object",

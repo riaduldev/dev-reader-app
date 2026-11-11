@@ -1,6 +1,6 @@
-# DevPulse — Ingestion, Source Registry & Limitations
+# DevReaderHub — Ingestion, Source Registry & Limitations
 
-DevPulse collects developer technology news from a curated registry of sources,
+DevReaderHub collects developer technology news from a curated registry of sources,
 normalises the items, categorises them, deduplicates them and (optionally)
 runs an AI analysis on the most relevant ones.
 
@@ -95,13 +95,13 @@ respond with `2xx` and a parseable feed before being added.
 
 * **Anthropic News** — `anthropic.com/rss.xml` and `anthropic.com/news/rss.xml`
   both return `404`. The source is registered with type `html_index`, so
-  DevPulse stores the link and the notes but **never scrapes the page**.
+  DevReaderHub stores the link and the notes but **never scrapes the page**.
 * **TypeScript Blog** — `typescriptlang.org/rss.xml` returns `404`; registered
   as `html_index` for the same reason.
 * **OWASP blog** (`blog.owasp.org/feed`) did not respond during verification
   and is therefore **not** part of the registry.
 
-Only RSS, Atom and officially published JSON APIs are collected. DevPulse does
+Only RSS, Atom and officially published JSON APIs are collected. DevReaderHub does
 not parse HTML pages, does not bypass paywalls and does not ignore
 `robots.txt`; attribution is preserved by always linking back to the original
 article.

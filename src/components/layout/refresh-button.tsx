@@ -5,15 +5,19 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n";
+
 import { Button } from "@/components/ui/button";
 
 export function RefreshButton({ enabled }: { enabled: boolean }) {
+  const t = useT();
   const [loading, setLoading] = React.useState(false);
   const router = useRouter();
 
   const refresh = async () => {
     if (!enabled) {
-      toast.error("রিফ্রেশ করতে সাইন ইন করতে হবে।");
+      toast.error(t.common.login);
       return;
     }
     setLoading(true);
@@ -25,13 +29,16 @@ export function RefreshButton({ enabled }: { enabled: boolean }) {
         okSources?: number;
         failedSources?: number;
       };
-      if (!response.ok) throw new Error(json.error ?? "রিফ্রেশ ব্যর্থ।");
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
       toast.success(
-        `রিফ্রেশ সম্পন্ন — ${json.okSources ?? 0} টি সোর্স থেকে ${json.newArticles ?? 0} টি নতুন নিবন্ধ পাওয়া গেছে।`,
+        format(t.dashboard.refreshDone, {
+          ok: String(json.okSources ?? 0),
+          count: String(json.newArticles ?? 0),
+        }),
       );
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "রিফ্রেশ ব্যর্থ।");
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
     } finally {
       setLoading(false);
     }
@@ -43,8 +50,8 @@ export function RefreshButton({ enabled }: { enabled: boolean }) {
       size="icon"
       onClick={refresh}
       disabled={loading}
-      aria-label="খবর রিফ্রেশ করুন"
-      title="খবর রিফ্রেশ করুন"
+      aria-label={t.common.refresh}
+      title={t.common.refresh}
     >
       {loading ? (
         <Loader2 className="size-4 animate-spin" />

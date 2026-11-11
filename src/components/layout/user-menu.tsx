@@ -2,7 +2,6 @@
 
 import {
   LogOut,
-  Settings,
   ShieldCheck,
   User as UserIcon,
 } from "lucide-react";
@@ -18,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useT } from "@/lib/i18n/client";
 import { signOut } from "@/lib/auth/actions";
 
 export interface UserMenuUser {
@@ -28,12 +28,13 @@ export interface UserMenuUser {
 }
 
 export function UserMenu({ user }: { user: UserMenuUser | null }) {
+  const t = useT();
   const [open, setOpen] = React.useState(false);
 
   if (!user) {
     return (
       <Button asChild variant="outline" size="sm">
-        <a href="/login">লগইন</a>
+        <a href="/login">{t.common.login}</a>
       </Button>
     );
   }
@@ -51,7 +52,7 @@ export function UserMenu({ user }: { user: UserMenuUser | null }) {
         <button
           type="button"
           className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-          aria-label="প্রোফাইল মেনু"
+          aria-label={t.common.profile}
         >
           <Avatar>
             {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt="" />}
@@ -72,14 +73,14 @@ export function UserMenu({ user }: { user: UserMenuUser | null }) {
         <DropdownMenuItem asChild>
           <a href="/settings">
             <UserIcon className="size-4" />
-            প্রোফাইল ও পছন্দ
+            {t.settings.profile} &amp; {t.settings.preferences}
           </a>
         </DropdownMenuItem>
         {user.role === "admin" && (
           <DropdownMenuItem asChild>
             <a href="/admin/sources">
               <ShieldCheck className="size-4" />
-              সোর্স ম্যানেজমেন্ট
+              {t.nav.sources}
             </a>
           </DropdownMenuItem>
         )}
@@ -88,21 +89,11 @@ export function UserMenu({ user }: { user: UserMenuUser | null }) {
           <form action={signOut}>
             <button type="submit" className="flex w-full items-center gap-2">
               <LogOut className="size-4" />
-              লগআউট
+              {t.common.logout}
             </button>
           </form>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-export function SettingsShortcut() {
-  return (
-    <Button asChild variant="ghost" size="icon" aria-label="সেটিংস">
-      <a href="/settings">
-        <Settings className="size-4" />
-      </a>
-    </Button>
   );
 }

@@ -1,10 +1,10 @@
-# DevPulse trending score
+# DevReaderHub trending score
 
 > **This is not GitHub Trending.**
-> GitHub's Trending page is a private, undocumented heuristic. DevPulse uses the
+> GitHub's Trending page is a private, undocumented heuristic. DevReaderHub uses the
 > **GitHub Search REST API** (`GET /search/repositories`) and computes its own
 > reproducible score on top of those results. The UI always labels the number as
-> “DevPulse স্কোর” and links to this document.
+> “DevReaderHub স্কোর” and links to this document.
 
 Implementation: `src/lib/github/trending.ts` (pure functions, unit-tested in
 `tests/trending.test.ts`).
@@ -20,7 +20,7 @@ Implementation: `src/lib/github/trending.ts` (pure functions, unit-tested in
 | `created_at` | repository creation date |
 | `pushed_at` | last push (falls back to `updated_at`, then `created_at`) |
 | `topics` | repository topics, compared against the requested topics |
-| `collected_at` | the moment DevPulse stored the result |
+| `collected_at` | the moment DevReaderHub stored the result |
 
 ---
 
@@ -83,7 +83,7 @@ qualifiers are appended when configured.
 ## Rate limits
 
 The GitHub Search API allows **10 requests/minute** for authenticated requests
-and **30 requests/hour** for unauthenticated ones. DevPulse:
+and **30 requests/hour** for unauthenticated ones. DevReaderHub:
 
 * sends `GITHUB_TOKEN` when it is configured (raising the limit to 30/min),
 * detects `403`/`429` responses and surfaces them as an explicit

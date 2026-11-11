@@ -4,15 +4,17 @@ import { NewsFeed } from "@/components/news/news-feed";
 import { NewsFilters } from "@/components/news/news-filters";
 import { PageHeader } from "@/components/ui/page-header";
 import { listArticles } from "@/lib/db/articles";
+import { describeDbError, getSchemaStatus, isMissingSchemaError } from "@/lib/db/schema";
+import { SchemaSetupNotice } from "@/components/setup/schema-setup-notice";
 import { listBookmarkedArticleIds } from "@/lib/db/user";
 import { getSession } from "@/lib/auth/session";
 import { isConfigured } from "@/lib/env";
+import { getDictionaryForRequest } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Developer Jobs",
-  description:
-    "frontend, backend, full-stack, remote ও software engineering job openings সংগৃহীত অফিসিয়াল ও বিশ্বস্ত ফিড থেকে।",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionaryForRequest();
+  return { title: t.jobs.title, description: t.jobs.description };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,7 @@ export default async function JobsPage({
   searchParams: Promise<{ q?: string; from?: string; to?: string; sort?: string; page?: string }>;
 }) {
   const query = await searchParams;
+  const t = await getDictionaryForRequest();
   const page = Number(query.page ?? "1") || 1;
   const sort =
     query.sort === "oldest" || query.sort === "importance" ? query.sort : "latest";
@@ -32,6 +35,7 @@ export default async function JobsPage({
   let result = null;
   let bookmarkedIds: string[] = [];
   let error: string | null = null;
+  let schemaMissing = false;
 
   if (dbConfigured) {
     try {
@@ -48,20 +52,29 @@ export default async function JobsPage({
         bookmarkedIds = await listBookmarkedArticleIds(session.user.id);
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : "কর্মসংস্থানের তথ্য লোড করা যায়নি।";
+      schemaMissing = isMissingSchemaError(err);
+      error = schemaMissing
+        ? await describeDbError(err)
+        : err instanceof Error
+          ? err.message
+          : t.errors.articlesLoad;
     }
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Developer Jobs ও Careers"
-        description="Remote OK, We Work Remotely ও Arbeitnow-এর পাবলিক API থেকে সংগৃহীত সফটওয়্যার ইঞ্জিনিয়ারিং ও ডেভেলপার পদ।"
+        title={t.jobs.title}
+        description={t.jobs.description}
       />
 
       <NewsFilters basePath="/jobs" />
 
-      {error && (
+      {schemaMissing && (
+        <SchemaSetupNotice initialStatus={await getSchemaStatus()} />
+      )}
+
+      {error && !schemaMissing && (
         <p className="rounded-lg border border-[var(--danger)]/40 bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">
           {error}
         </p>

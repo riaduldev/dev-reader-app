@@ -27,7 +27,7 @@ const KEV_URL =
 /**
  * Downloads the CISA Known Exploited Vulnerabilities (KEV) catalog.
  * The catalog is the authoritative source that a vulnerability is known to be
- * exploited in the wild — DevPulse only marks `exploited = true` from this data.
+ * exploited in the wild — DevReaderHub only marks `exploited = true` from this data.
  */
 export async function fetchKevCatalog(): Promise<CisaKevResult> {
   const response = await fetchWithRetry(KEV_URL, {

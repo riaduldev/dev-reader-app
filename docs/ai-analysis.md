@@ -1,6 +1,6 @@
 # AI analysis (Bangla)
 
-DevPulse can enrich an article with a structured, Bangla-language analysis.
+DevReaderHub can enrich an article with a structured, Bangla-language analysis.
 The call is made **server-side only** — the API key never reaches the browser.
 
 Implementation: `src/lib/ai/analyze.ts` · schema tests: `tests/ai.test.ts`.
@@ -41,7 +41,7 @@ schema, and the response is validated again with Zod
 
 If the model returns something that does not match the schema, the article is
 left **unprocessed** (no partial data is stored) and can be retried on a later
-run. DevPulse never invents or back-fills an analysis.
+run. DevReaderHub never invents or back-fills an analysis.
 
 ---
 

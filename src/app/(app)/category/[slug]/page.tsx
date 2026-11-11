@@ -5,10 +5,14 @@ import { NewsFeed } from "@/components/news/news-feed";
 import { NewsFilters } from "@/components/news/news-filters";
 import { PageHeader } from "@/components/ui/page-header";
 import { listArticles } from "@/lib/db/articles";
+import { describeDbError, getSchemaStatus, isMissingSchemaError } from "@/lib/db/schema";
+import { SchemaSetupNotice } from "@/components/setup/schema-setup-notice";
 import { listBookmarkedArticleIds } from "@/lib/db/user";
 import { getSession } from "@/lib/auth/session";
-import { CATEGORY_MAP, isCategoryId } from "@/lib/categories";
+import { isCategoryId } from "@/lib/categories";
 import { isConfigured } from "@/lib/env";
+import { getDictionaryForRequest } from "@/lib/i18n/server";
+import { categoryDescription, categoryLabel } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +22,12 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  if (!isCategoryId(slug)) return { title: "ক্যাটাগরি" };
-  const category = CATEGORY_MAP[slug];
-  return { title: category.label, description: category.description };
+  if (!isCategoryId(slug)) return { title: "Category" };
+  const t = await getDictionaryForRequest();
+  return {
+    title: categoryLabel(slug, t),
+    description: categoryDescription(slug, t),
+  };
 }
 
 export default async function CategoryPage({
@@ -34,7 +41,7 @@ export default async function CategoryPage({
   if (!isCategoryId(slug)) {
     notFound();
   }
-  const category = CATEGORY_MAP[slug];
+  const t = await getDictionaryForRequest();
   const query = await searchParams;
   const page = Number(query.page ?? "1") || 1;
   const sort =
@@ -46,6 +53,7 @@ export default async function CategoryPage({
   let result = null;
   let bookmarkedIds: string[] = [];
   let error: string | null = null;
+  let schemaMissing = false;
 
   if (dbConfigured) {
     try {
@@ -62,17 +70,29 @@ export default async function CategoryPage({
         bookmarkedIds = await listBookmarkedArticleIds(session.user.id);
       }
     } catch (err) {
-      error = err instanceof Error ? err.message : "নিবন্ধ লোড করা যায়নি।";
+      schemaMissing = isMissingSchemaError(err);
+      error = schemaMissing
+        ? await describeDbError(err)
+        : err instanceof Error
+          ? err.message
+          : t.errors.articlesLoad;
     }
   }
 
   return (
     <div className="space-y-6">
-      <PageHeader title={category.label} description={category.description} />
+      <PageHeader
+        title={categoryLabel(slug, t)}
+        description={categoryDescription(slug, t)}
+      />
 
       <NewsFilters basePath={`/category/${slug}`} />
 
-      {error && (
+      {schemaMissing && (
+        <SchemaSetupNotice initialStatus={await getSchemaStatus()} />
+      )}
+
+      {error && !schemaMissing && (
         <p className="rounded-lg border border-[var(--danger)]/40 bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">
           {error}
         </p>

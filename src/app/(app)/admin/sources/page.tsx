@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { SourceManager } from "@/components/admin/source-manager";
+import { SchemaSetupNotice } from "@/components/setup/schema-setup-notice";
 import { RunIngestionButton } from "@/components/admin/run-ingestion-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,26 +12,31 @@ import { listRuns, getRunWithItems } from "@/lib/db/runs";
 import type { DatabaseIngestionRun, DatabaseSource } from "@/lib/db/types";
 import { getSession } from "@/lib/auth/session";
 import { isConfigured } from "@/lib/env";
-import { strings } from "@/lib/i18n";
-import { relativeTimeBn } from "@/lib/utils";
+import { getSchemaStatus } from "@/lib/db/schema";
+import { getDictionaryForRequest, getLanguage } from "@/lib/i18n/server";
+import { format } from "@/lib/i18n";
+import { formatRelativeTime } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: "সোর্স ম্যানেজমেন্ট",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionaryForRequest();
+  return { title: t.admin.title };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSourcesPage() {
   const session = await getSession();
+  const t = await getDictionaryForRequest();
+  const language = await getLanguage();
 
   if (!session.user) {
     return (
       <div className="space-y-6">
-        <PageHeader title={strings.admin.title} description={strings.admin.description} />
+        <PageHeader title={t.admin.title} description={t.admin.description} />
         <EmptyState
-          title="সাইন ইন করতে হবে"
-          description="এই পেজটি শুধুমাত্র অ্যাডমিন ব্যবহার করতে পারবেন।"
-          action={{ label: "লগইন", href: "/login?next=/admin/sources" }}
+          title={t.empty.signInRequiredTitle}
+          description={t.empty.signInRequiredBody}
+          action={{ label: t.common.login, href: "/login?next=/admin/sources" }}
         />
       </div>
     );
@@ -39,16 +45,17 @@ export default async function AdminSourcesPage() {
   if (session.user.profile?.role !== "admin") {
     return (
       <div className="space-y-6">
-        <PageHeader title={strings.admin.title} description={strings.admin.description} />
+        <PageHeader title={t.admin.title} description={t.admin.description} />
         <EmptyState
-          title="অ্যাডমিন প্রিভিলেজ প্রয়োজন"
-          description="এই পেজটি শুধুমাত্র admin role ধারণকারী ব্যবহারকারীদের জন্য। আপনার প্রোফাইলে role পরিবর্তন করতে ডেটাবেসে user_profiles টেবিল আপডেট করুন।"
+          title={t.admin.adminOnly}
+          description={t.admin.adminOnlyBody}
         />
       </div>
     );
   }
 
   const dbConfigured = isConfigured("supabase") || isConfigured("supabaseAdmin");
+  const schemaStatus = await getSchemaStatus();
 
   let sources: DatabaseSource[] = [];
   let runs: DatabaseIngestionRun[] = [];
@@ -82,22 +89,26 @@ export default async function AdminSourcesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={strings.admin.title}
-        description={strings.admin.description}
+        title={t.admin.title}
+        description={t.admin.description}
         actions={<RunIngestionButton />}
       />
+
+      {schemaStatus && !schemaStatus.ok && (
+        <SchemaSetupNotice initialStatus={schemaStatus} canCopy />
+      )}
 
       <SourceManager initialSources={sources} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>{strings.admin.runs}</CardTitle>
+            <CardTitle>{t.admin.runs}</CardTitle>
           </CardHeader>
           <CardContent>
             {runs.length === 0 ? (
               <p className="text-sm text-[var(--muted-foreground)]">
-                এখনো কোনো সংগ্রহ রান হয়নি।
+                {t.admin.noRuns}
               </p>
             ) : (
               <ul className="divide-y divide-[var(--border)]">
@@ -118,12 +129,16 @@ export default async function AdminSourcesPage() {
                         {run.status}
                       </Badge>
                       <span className="text-xs text-[var(--muted-foreground)]">
-                        {run.trigger} · {relativeTimeBn(run.started_at)}
+                        {run.trigger} · {formatRelativeTime(run.started_at, language)}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                      {run.new_articles} নতুন · {run.duplicate_articles} ডুপ্লিকেট · AI{" "}
-                      {run.ai_processed} · সোর্স {run.ok_sources}/{run.total_sources}
+                      {format(t.dashboard.runSummary, {
+                        status: run.status,
+                        articles: String(run.new_articles),
+                        ok: String(run.ok_sources),
+                        total: String(run.total_sources),
+                      })}
                     </p>
                     {run.error && (
                       <p className="mt-1 line-clamp-2 text-xs text-[var(--danger)]">
@@ -139,12 +154,12 @@ export default async function AdminSourcesPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>{strings.admin.errors}</CardTitle>
+            <CardTitle>{t.admin.errors}</CardTitle>
           </CardHeader>
           <CardContent>
             {failedItems.length === 0 ? (
               <p className="text-sm text-[var(--muted-foreground)]">
-                কোনো সংগ্রহ ত্রুটি নেই।
+                {t.admin.noErrors}
               </p>
             ) : (
               <ul className="space-y-2">
@@ -156,7 +171,7 @@ export default async function AdminSourcesPage() {
                     <p className="font-medium">{item.source_name}</p>
                     <p className="mt-0.5 text-[var(--danger)]">{item.error}</p>
                     <p className="mt-0.5 text-[var(--muted-foreground)]">
-                      {relativeTimeBn(item.created_at)}
+                      {formatRelativeTime(item.created_at, language)}
                     </p>
                   </li>
                 ))}

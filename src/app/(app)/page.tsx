@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { ArticleCard } from "@/components/news/article-card";
 import { CategoryPills } from "@/components/news/category-pills";
@@ -16,6 +17,7 @@ import { GithubRepoCard } from "@/components/github/repo-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SetupNotice } from "@/components/setup/setup-notice";
+import { SchemaSetupNotice } from "@/components/setup/schema-setup-notice";
 import { VulnerabilityRow } from "@/components/security/vulnerability-row";
 import { listArticles, getArticleStats, getWeeklyHighlights } from "@/lib/db/articles";
 import { listGithubRepos } from "@/lib/db/github";
@@ -23,21 +25,26 @@ import { listVulnerabilities } from "@/lib/db/vulnerabilities";
 import { getLastSuccessfulSync } from "@/lib/db/sources";
 import { getLatestRun } from "@/lib/db/runs";
 import { isConfigured } from "@/lib/env";
-import { CATEGORIES } from "@/lib/categories";
-import { strings } from "@/lib/i18n";
-import { relativeTimeBn } from "@/lib/utils";
+import { getSession } from "@/lib/auth/session";
+import { getDictionaryForRequest, getLanguage } from "@/lib/i18n/server";
+import { PageSkeleton } from "@/components/ui/page-skeleton";
+import { getSchemaStatus, isMissingSchemaError } from "@/lib/db/schema";
+import { format } from "@/lib/i18n";
+import { formatRelativeTime } from "@/lib/utils";
+import type { Language } from "@/lib/i18n";
 
-export const metadata: Metadata = {
-  title: "ওভারভিউ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionaryForRequest();
+  return { title: t.nav.overview };
+}
 
 export const dynamic = "force-dynamic";
 
-function greeting(): string {
+function greeting(t: Awaited<ReturnType<typeof getDictionaryForRequest>>) {
   const hour = new Date().getHours();
-  if (hour < 12) return strings.dashboard.greetingMorning;
-  if (hour < 18) return strings.dashboard.greetingAfternoon;
-  return strings.dashboard.greetingEvening;
+  if (hour < 12) return t.dashboard.greetingMorning;
+  if (hour < 18) return t.dashboard.greetingAfternoon;
+  return t.dashboard.greetingEvening;
 }
 
 function StatCard({
@@ -67,16 +74,20 @@ function StatCard({
   );
 }
 
-export default async function OverviewPage({
+async function DashboardContent({
   searchParams,
 }: {
   searchParams: Promise<{ category?: string; page?: string }>;
 }) {
   const params = await searchParams;
+  const t = await getDictionaryForRequest();
+  const language: Language = await getLanguage();
+
   const category = params.category ?? "all";
   const page = Number(params.page ?? "1") || 1;
 
   const dbConfigured = isConfigured("supabase") || isConfigured("supabaseAdmin");
+  const session = await getSession();
 
   let stats = null;
   let important: Awaited<ReturnType<typeof listArticles>> | null = null;
@@ -87,6 +98,7 @@ export default async function OverviewPage({
   let lastSync: Awaited<ReturnType<typeof getLastSuccessfulSync>> = null;
   let lastRun: Awaited<ReturnType<typeof getLatestRun>> = null;
   let dbError: string | null = null;
+  let schemaMissing = false;
 
   if (dbConfigured) {
     try {
@@ -113,54 +125,71 @@ export default async function OverviewPage({
           getLatestRun(),
         ]);
     } catch (error) {
-      dbError = error instanceof Error ? error.message : "ডেটাবেস পড়া যায়নি।";
+      schemaMissing = isMissingSchemaError(error);
+      dbError = schemaMissing
+        ? t.errors.dbSchema
+        : error instanceof Error
+          ? error.message
+          : t.errors.dbRead;
     }
   }
 
+  const schemaStatus = schemaMissing ? await getSchemaStatus() : null;
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          {greeting()} 👋
+          {greeting(t)} 👋
         </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          <CurrentDate /> · {strings.tagline}
+          {t.dashboard.intro}
+        </p>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          <CurrentDate /> · {t.app.tagline}
         </p>
       </div>
 
       {!dbConfigured && <SetupNotice />}
 
-      {dbError && (
+      {schemaStatus && (
+        <SchemaSetupNotice
+          initialStatus={schemaStatus}
+          canCopy={session.user?.profile?.role === "admin"}
+        />
+      )}
+
+      {dbError && !schemaStatus && (
         <Card className="border-[var(--danger)]/40">
           <CardContent className="p-4 text-sm text-[var(--danger)]">
-            ডেটাবেস পড়তে সমস্যা হয়েছে: {dbError}
+            {t.errors.dbRead}: {dbError}
           </CardContent>
         </Card>
       )}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label={strings.dashboard.totalArticles}
+          label={t.dashboard.totalArticles}
           value={stats?.totalArticles ?? 0}
-          hint="সংগৃহীত মোট নিবন্ধ"
+          hint={t.dashboard.articlesCollected}
           icon={BookMarked}
         />
         <StatCard
-          label={strings.dashboard.last24h}
+          label={t.dashboard.last24h}
           value={stats?.articles24h ?? 0}
-          hint="গত ২৪ ঘণ্টায় প্রকাশিত"
+          hint={t.dashboard.last24hHint}
           icon={Activity}
         />
         <StatCard
-          label={strings.dashboard.last7d}
+          label={t.dashboard.last7d}
           value={stats?.articles7d ?? 0}
-          hint="গত ৭ দিনে প্রকাশিত"
+          hint={t.dashboard.last7dHint}
           icon={Cpu}
         />
         <StatCard
-          label={strings.dashboard.analyzed}
+          label={t.dashboard.analyzed}
           value={stats?.analyzedArticles ?? 0}
-          hint="AI বিশ্লেষণ সম্পন্ন"
+          hint={t.dashboard.analyzedHint}
           icon={GitBranch}
         />
       </section>
@@ -169,16 +198,21 @@ export default async function OverviewPage({
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <p className="text-[var(--muted-foreground)]">
             <span className="font-medium text-[var(--foreground)]">
-              {strings.dashboard.lastSync}:
+              {t.dashboard.lastSync}:
             </span>{" "}
             {lastSync
-              ? `${lastSync.sourceName} — ${relativeTimeBn(lastSync.at)}`
-              : strings.dashboard.neverSynced}
+              ? `${lastSync.sourceName} — ${formatRelativeTime(lastSync.at, language)}`
+              : t.dashboard.neverSynced}
           </p>
           <p className="text-xs text-[var(--muted-foreground)]">
             {lastRun
-              ? `শেষ রান: ${lastRun.status} · ${lastRun.new_articles} নতুন নিবন্ধ · ${lastRun.ok_sources}/${lastRun.total_sources} সোর্স`
-              : "এখনো কোনো সংগ্রহ রান হয়নি।"}
+              ? format(t.dashboard.runSummary, {
+                  status: lastRun.status,
+                  articles: String(lastRun.new_articles),
+                  ok: String(lastRun.ok_sources),
+                  total: String(lastRun.total_sources),
+                })
+              : t.dashboard.noRunYet}
           </p>
         </div>
       </Card>
@@ -188,13 +222,13 @@ export default async function OverviewPage({
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Flame className="size-4 text-[var(--danger)]" />
-              {strings.dashboard.importantNews}
+              {t.dashboard.importantNews}
             </CardTitle>
             <Link
               href="/news?sort=importance"
               className="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--accent)]"
             >
-              {strings.common.viewAll}
+              {t.common.viewAll}
             </Link>
           </CardHeader>
           <CardContent>
@@ -207,16 +241,16 @@ export default async function OverviewPage({
                         {article.sources?.name ?? "—"}
                       </span>
                       <span>·</span>
-                      <span>{relativeTimeBn(article.published_at)}</span>
+                      <span>
+                        {formatRelativeTime(article.published_at, language)}
+                      </span>
                     </div>
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      href={`/article/${article.id}`}
                       className="mt-1 block text-sm font-medium leading-snug transition-colors hover:text-[var(--accent)]"
                     >
                       {article.title}
-                    </a>
+                    </Link>
                     {article.ai_summary_bn && (
                       <p className="mt-1 line-clamp-2 text-xs text-[var(--muted-foreground)]">
                         {article.ai_summary_bn}
@@ -227,8 +261,8 @@ export default async function OverviewPage({
               </ul>
             ) : (
               <EmptyState
-                title="এখনো কোনো গুরুত্বপূর্ণ নিবন্ধ নেই"
-                description="সিঙ্ক চালানোর পর গুরুত্বপূর্ণ নিবন্ধগুলো এখানে দেখা যাবে।"
+                title={t.empty.importantTitle}
+                description={t.empty.importantBody}
               />
             )}
           </CardContent>
@@ -238,7 +272,7 @@ export default async function OverviewPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldAlert className="size-4 text-[var(--warning)]" />
-              {strings.dashboard.securityAlerts}
+              {t.dashboard.securityAlerts}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -252,15 +286,15 @@ export default async function OverviewPage({
               </ul>
             ) : (
               <EmptyState
-                title="কোনো নিরাপত্তা অ্যালার্ট নেই"
-                description="CISA KEV ও NVD সিঙ্ক করলে এখানে তালিকা দেখা যাবে।"
+                title={t.empty.securityTitle}
+                description={t.empty.securityBody}
               />
             )}
             <Link
               href="/security"
               className="mt-3 inline-block text-xs font-medium text-[var(--accent)]"
             >
-              সব নিরাপত্তা তথ্য →
+              {t.common.viewAll} →
             </Link>
           </CardContent>
         </Card>
@@ -269,7 +303,7 @@ export default async function OverviewPage({
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold tracking-tight">
-            {strings.dashboard.chronologicalFeed}
+            {t.dashboard.chronologicalFeed}
           </h2>
           <CategoryPills active={category} basePath="/" />
         </div>
@@ -282,12 +316,15 @@ export default async function OverviewPage({
           </div>
         ) : (
           <EmptyState
-            title="কোনো নিবন্ধ পাওয়া যায়নি"
-            description={
-              dbConfigured
-                ? "সংগ্রহ এখনো কোনো নিবন্ধ যোগ করেনি। অ্যাডমিন প্যানেল থেকে ম্যানুয়াল সিঙ্ক চালান।"
-                : "ডেটাবেস কনফিগার না করা পর্যন্ত কোনো তথ্য দেখানো হবে না।"
-            }
+            title={t.empty.articlesTitle}
+            description={t.empty.articlesBody}
+            action={{
+              label: t.empty.articlesAction,
+              href:
+                session.user?.profile?.role === "admin"
+                  ? "/admin/sources"
+                  : "/news",
+            }}
           />
         )}
       </section>
@@ -297,22 +334,24 @@ export default async function OverviewPage({
           <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <GitBranch className="size-4" />
-              {strings.dashboard.githubResults}
+              {t.dashboard.githubResults}
             </CardTitle>
             <Link
               href="/github"
               className="text-xs font-medium text-[var(--muted-foreground)] hover:text-[var(--accent)]"
             >
-              {strings.common.viewAll}
+              {t.common.viewAll}
             </Link>
           </CardHeader>
           <CardContent className="space-y-3">
             {repos.length > 0 ? (
-              repos.map((repo) => <GithubRepoCard key={repo.full_name} repo={repo} />)
+              repos.map((repo) => (
+                <GithubRepoCard key={repo.full_name} repo={repo} />
+              ))
             ) : (
               <EmptyState
-                title="কোনো রিপোজিটরি সংগ্রহ করা হয়নি"
-                description="GitHub সিঙ্ক চালালে এখানে রিপোজিটরি দেখা যাবে।"
+                title={t.empty.reposTitle}
+                description={t.empty.reposBody}
               />
             )}
           </CardContent>
@@ -322,7 +361,7 @@ export default async function OverviewPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Flame className="size-4 text-[var(--accent)]" />
-              {strings.dashboard.weeklyHighlights}
+              {t.dashboard.weeklyHighlights}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -330,24 +369,23 @@ export default async function OverviewPage({
               <ul className="divide-y divide-[var(--border)]">
                 {highlights.map((item) => (
                   <li key={item.id} className="py-3 first:pt-0 last:pb-0">
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <Link
+                      href={`/article/${item.id}`}
                       className="block text-sm font-medium leading-snug transition-colors hover:text-[var(--accent)]"
                     >
                       {item.title}
-                    </a>
+                    </Link>
                     <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                      {item.source_name ?? "—"} · {relativeTimeBn(item.published_at)}
+                      {item.source_name ?? "—"} ·{" "}
+                      {formatRelativeTime(item.published_at, language)}
                     </p>
                   </li>
                 ))}
               </ul>
             ) : (
               <EmptyState
-                title="এই সপ্তাহে কোনো হাইলাইট নেই"
-                description="গত ৭ দিনের সংগৃহীত নিবন্ধের মধ্যে গুরুত্বপূর্ণ কিছু পাওয়া যায়নি।"
+                title={t.empty.highlightsTitle}
+                description={t.empty.highlightsBody}
               />
             )}
           </CardContent>
@@ -355,9 +393,27 @@ export default async function OverviewPage({
       </section>
 
       <p className="pb-4 text-xs text-[var(--muted-foreground)]">
-        সব পরিসংখ্যান শুধুমাত্র সংগৃহীত রেকর্ড থেকে হিসাব করা হয়েছে।{" "}
-        {CATEGORIES.length}টি ক্যাটাগরি সক্রিয়।
+        {t.dashboard.statsNote}
       </p>
     </div>
+  );
+}
+
+/**
+ * The dashboard renders its data inside a Suspense boundary so the shell and
+ * the skeleton appear immediately while the queries run. The boundary is
+ * deliberately placed inside the page (instead of a route-level loading.tsx)
+ * so that other routes — for example a missing article — can still answer
+ * with a real 404 status.
+ */
+export default function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; page?: string }>;
+}) {
+  return (
+    <Suspense fallback={<PageSkeleton />}>
+      <DashboardContent searchParams={searchParams} />
+    </Suspense>
   );
 }

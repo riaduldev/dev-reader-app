@@ -38,7 +38,7 @@ export function EmptyState({
 }
 
 export function ErrorState({
-  title = "একটি সমস্যা হয়েছে",
+  title = "Something went wrong",
   description,
   action,
 }: {

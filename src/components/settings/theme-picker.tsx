@@ -15,8 +15,10 @@ import {
   useThemePreference,
   type ThemePreference,
 } from "@/components/theme/theme-store";
+import { useT } from "@/lib/i18n/client";
 
 export function ThemePicker() {
+  const t = useT();
   const stored = useThemePreference();
   const [local, setLocal] = React.useState<ThemePreference | null>(null);
   const theme = local ?? stored;
@@ -25,18 +27,24 @@ export function ThemePicker() {
     const next = value as ThemePreference;
     setLocal(next);
     applyTheme(next);
-    toast.success("থিম আপডেট হয়েছে।");
+    toast.success(t.common.themeChanged);
   };
 
   return (
     <Select value={theme} onValueChange={change}>
-      <SelectTrigger className="w-full sm:w-56">
-        <SelectValue />
+      <SelectTrigger className="w-full sm:w-56" aria-label={t.common.theme}>
+        <SelectValue>
+          {theme === "dark"
+            ? t.common.themeDark
+            : theme === "light"
+              ? t.common.themeLight
+              : t.common.themeSystem}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="dark">ডার্ক (ডিফল্ট)</SelectItem>
-        <SelectItem value="light">লাইট</SelectItem>
-        <SelectItem value="system">সিস্টেম অনুসরণ করুন</SelectItem>
+        <SelectItem value="dark">{t.common.themeDark}</SelectItem>
+        <SelectItem value="light">{t.common.themeLight}</SelectItem>
+        <SelectItem value="system">{t.common.themeSystem}</SelectItem>
       </SelectContent>
     </Select>
   );

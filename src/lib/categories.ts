@@ -1,3 +1,5 @@
+import type { Dictionary } from "@/lib/i18n/types";
+
 export const CATEGORY_IDS = [
   "ai",
   "web",
@@ -16,26 +18,21 @@ export type SourceReliability = "official" | "trusted" | "community";
 
 export interface CategoryMeta {
   id: CategoryId;
-  /** Bangla label shown in navigation and page headers. */
-  label: string;
-  /** English label preserved for technical clarity. */
-  labelEn: string;
-  description: string;
   slug: string;
+  /** English label, always available for technical clarity. */
+  labelEn: string;
   /** Hue used for badges and accents. */
   hue: number;
+  /** Keywords used by the categoriser. */
   terms: string[];
 }
 
 export const CATEGORIES: CategoryMeta[] = [
   {
     id: "ai",
-    label: "AI ও Machine Learning",
-    labelEn: "AI & Machine Learning",
     slug: "ai",
+    labelEn: "AI & Machine Learning",
     hue: 265,
-    description:
-      "OpenAI, ChatGPT, Claude, Gemini, LLM, AI Agents, Machine Learning এবং AI Coding সংক্রান্ত সর্বশেষ খবর ও বিশ্লেষণ।",
     terms: [
       "openai",
       "chatgpt",
@@ -66,12 +63,9 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     id: "web",
-    label: "Web Development",
-    labelEn: "Web Development",
     slug: "web",
+    labelEn: "Web Development",
     hue: 200,
-    description:
-      "JavaScript, TypeScript, React, Next.js, Node.js, Express, CSS, HTML, Vue, Angular, Bun, Deno — frontend ও backend ডেভেলপমেন্টের খবর।",
     terms: [
       "javascript",
       "typescript",
@@ -111,12 +105,9 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     id: "opensource",
-    label: "GitHub ও Open Source",
-    labelEn: "GitHub & Open Source",
     slug: "opensource",
+    labelEn: "GitHub & Open Source",
     hue: 150,
-    description:
-      "GitHub, libraries, frameworks, developer tools এবং open-source projects-এর রিলিজ, রিপোজিটরি ও কমিউনিটি আপডেট।",
     terms: [
       "github",
       "git",
@@ -150,12 +141,9 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     id: "security",
-    label: "Cybersecurity",
-    labelEn: "Cybersecurity",
     slug: "security",
+    labelEn: "Cybersecurity",
     hue: 5,
-    description:
-      "CVE, CISA, NVD, vulnerabilities, data breaches, OWASP ও application security — যাচাই করা security intelligence।",
     terms: [
       "cve",
       "cisa",
@@ -191,12 +179,9 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     id: "cloud",
-    label: "Cloud ও DevOps",
-    labelEn: "Cloud & DevOps",
     slug: "cloud",
+    labelEn: "Cloud & DevOps",
     hue: 30,
-    description:
-      "AWS, Azure, Google Cloud, Docker, Kubernetes, Terraform ও CI/CD — infrastructure, platform ও deployment news।",
     terms: [
       "aws",
       "amazon web services",
@@ -230,12 +215,9 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     id: "industry",
-    label: "Tech Industry",
-    labelEn: "Tech Industry",
     slug: "industry",
+    labelEn: "Tech Industry",
     hue: 320,
-    description:
-      "Google, Microsoft, Apple, Meta, OpenAI, Anthropic, startups, acquisitions — কোম্পানি ও শিল্পের খবর।",
     terms: [
       "google",
       "microsoft",
@@ -268,12 +250,9 @@ export const CATEGORIES: CategoryMeta[] = [
   },
   {
     id: "jobs",
-    label: "Developer Jobs",
-    labelEn: "Developer Jobs",
     slug: "jobs",
+    labelEn: "Developer Jobs",
     hue: 95,
-    description:
-      "frontend, backend, full-stack, remote এবং software engineering job openings ও hiring trends।",
     terms: [
       "developer job",
       "software engineer",
@@ -314,9 +293,16 @@ export function isCategoryId(value: string): value is CategoryId {
   return (CATEGORY_IDS as readonly string[]).includes(value);
 }
 
-export function categoryLabel(id: string): string {
-  return CATEGORY_MAP[id as CategoryId]?.label ?? id;
+/** Localised category label for the active interface language. */
+export function categoryLabel(id: string, t: Dictionary): string {
+  const category = t.categories[id as CategoryId];
+  return category?.label ?? CATEGORY_MAP[id as CategoryId]?.labelEn ?? id;
 }
 
-export const APP_NAME = "DevPulse";
-export const APP_TAGLINE = "Your Personal Developer Intelligence Hub";
+/** Localised category description for the active interface language. */
+export function categoryDescription(id: string, t: Dictionary): string {
+  return t.categories[id as CategoryId]?.description ?? "";
+}
+
+export const APP_NAME = "DevReaderHub";
+export const APP_TAGLINE = "আপনার প্রতিদিনের Developer News Hub";

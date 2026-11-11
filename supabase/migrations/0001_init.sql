@@ -1,4 +1,4 @@
--- DevPulse — initial schema
+-- DevReaderHub — initial schema
 -- Target: Supabase PostgreSQL
 -- Apply with: supabase db push   (or paste into the Supabase SQL editor)
 
@@ -337,7 +337,7 @@ insert into public.sources (slug, name, feed_url, site_url, category, source_typ
 values
   ('openai-news', 'OpenAI News', 'https://openai.com/news/rss.xml', 'https://openai.com/news/', 'ai', 'rss', 'official', 'Official OpenAI news feed.'),
   ('openai-blog', 'OpenAI Blog', 'https://openai.com/blog/rss.xml', 'https://openai.com/blog/', 'ai', 'rss', 'official', 'Official OpenAI blog feed.'),
-  ('anthropic-news', 'Anthropic News', null, 'https://www.anthropic.com/news', 'ai', 'html_index', 'official', 'Anthropic publishes no public RSS/Atom feed (verified 404). Registered as an index-only source; DevPulse does not scrape it.'),
+  ('anthropic-news', 'Anthropic News', null, 'https://www.anthropic.com/news', 'ai', 'html_index', 'official', 'Anthropic publishes no public RSS/Atom feed (verified 404). Registered as an index-only source; DevReaderHub does not scrape it.'),
   ('google-ai-blog', 'Google AI Blog', 'https://blog.google/technology/ai/rss/', 'https://blog.google/technology/ai/', 'ai', 'rss', 'official', 'Official Google AI blog feed.'),
   ('google-deepmind', 'Google DeepMind', 'https://deepmind.google/blog/rss.xml', 'https://deepmind.google/blog/', 'ai', 'rss', 'official', 'Official DeepMind blog feed.'),
   ('huggingface-blog', 'Hugging Face Blog', 'https://huggingface.co/blog/feed.xml', 'https://huggingface.co/blog', 'ai', 'rss', 'official', 'Official Hugging Face blog feed.'),
@@ -348,7 +348,7 @@ values
   ('nodejs-releases', 'Node.js Releases', 'https://nodejs.org/en/feed/releases.xml', 'https://nodejs.org/en/download/releases', 'web', 'rss', 'official', 'Official Node.js release feed.'),
   ('mdn-blog', 'MDN Blog', 'https://developer.mozilla.org/en-US/blog/rss.xml', 'https://developer.mozilla.org/en-US/blog/', 'web', 'rss', 'official', 'Official MDN blog feed.'),
   ('chrome-developers', 'Chrome Developers', 'https://developer.chrome.com/feed.xml', 'https://developer.chrome.com/blog', 'web', 'rss', 'official', 'Official Chrome Developers blog feed.'),
-  ('typescript-blog', 'TypeScript Blog', null, 'https://www.typescriptlang.org/blog', 'web', 'html_index', 'official', 'typescriptlang.org exposes no RSS/Atom feed (verified 404). Index-only source; DevPulse does not scrape it.'),
+  ('typescript-blog', 'TypeScript Blog', null, 'https://www.typescriptlang.org/blog', 'web', 'html_index', 'official', 'typescriptlang.org exposes no RSS/Atom feed (verified 404). Index-only source; DevReaderHub does not scrape it.'),
   ('vercel-blog', 'Vercel Blog', 'https://vercel.com/atom', 'https://vercel.com/blog', 'web', 'atom', 'official', 'Official Vercel Atom feed.'),
   ('stackoverflow-blog', 'Stack Overflow Blog', 'https://stackoverflow.blog/feed/', 'https://stackoverflow.blog/', 'web', 'rss', 'official', 'Official Stack Overflow blog feed.'),
   ('cloudflare-blog', 'Cloudflare Blog', 'https://blog.cloudflare.com/rss/', 'https://blog.cloudflare.com/', 'web', 'rss', 'trusted', 'Cloudflare engineering blog.'),
@@ -358,7 +358,7 @@ values
   ('rust-blog', 'Rust Blog', 'https://blog.rust-lang.org/feed.xml', 'https://blog.rust-lang.org/', 'opensource', 'rss', 'official', 'Official Rust blog feed.'),
   ('cncf-blog', 'CNCF Blog', 'https://www.cncf.io/feed/', 'https://www.cncf.io/blog/', 'opensource', 'rss', 'official', 'Cloud Native Computing Foundation blog.'),
   ('netflix-techblog', 'Netflix TechBlog', 'https://netflixtechblog.com/feed', 'https://netflixtechblog.com/', 'opensource', 'rss', 'trusted', 'Netflix engineering blog.'),
-  ('github-search', 'GitHub Search API', 'https://api.github.com/search/repositories', 'https://github.com/', 'opensource', 'json_api', 'official', 'Repository search via the GitHub REST API. Results are search hits scored by DevPulse, not GitHub Trending.'),
+  ('github-search', 'GitHub Search API', 'https://api.github.com/search/repositories', 'https://github.com/', 'opensource', 'json_api', 'official', 'Repository search via the GitHub REST API. Results are search hits scored by DevReaderHub, not GitHub Trending.'),
 
   ('cisa-advisories', 'CISA Advisories', 'https://www.cisa.gov/cybersecurity-advisories/all.xml', 'https://www.cisa.gov/cybersecurity-advisories', 'security', 'rss', 'official', 'Official CISA advisory feed.'),
   ('cisa-kev', 'CISA Known Exploited Vulnerabilities', 'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json', 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog', 'security', 'json_api', 'official', 'Authoritative catalog of vulnerabilities confirmed to be exploited.'),

@@ -1,10 +1,10 @@
 /**
- * DevPulse trending score.
+ * DevReaderHub trending score.
  *
  * The GitHub Search API does not expose a ranking, and GitHub's own
- * "Trending" page is a private, undocumented heuristic. To stay honest, DevPulse
+ * "Trending" page is a private, undocumented heuristic. To stay honest, DevReaderHub
  * computes its own reproducible score over search results and labels it as
- * "DevPulse score" everywhere in the UI — never as "GitHub Trending".
+ * "DevReaderHub score" everywhere in the UI — never as "GitHub Trending".
  *
  * Formula (see docs/trending-score.md for the full rationale):
  *

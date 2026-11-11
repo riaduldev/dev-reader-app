@@ -161,6 +161,8 @@ export interface DatabaseUserPreferences {
   language: "bn" | "en";
   density: "comfortable" | "compact";
   categories: string[] | null;
+  technologies: string[] | null;
+  onboarding_completed: boolean;
   email_digest: boolean;
   created_at: string;
   updated_at: string;

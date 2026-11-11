@@ -1,47 +1,42 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { AuthForm } from "@/components/auth/auth-form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { APP_NAME } from "@/lib/categories";
-import { signupAction } from "@/app/auth-actions";
-import { strings } from "@/lib/i18n";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { getAuthSettings } from "@/lib/auth/settings";
+import { isSupabaseConfigured } from "@/lib/supabase/server";
+import { signInWithOAuthAction, signupAction } from "@/lib/auth/actions";
+import { getDictionaryForRequest } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "সাইন আপ",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionaryForRequest();
+  return { title: t.auth.signUp, description: t.auth.signupSubtitle };
+}
+
+export const dynamic = "force-dynamic";
 
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const { next } = await searchParams;
+  const params = await searchParams;
+  const settings = await getAuthSettings();
+  const t = await getDictionaryForRequest();
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-[var(--accent)] text-sm font-bold text-[var(--accent-foreground)]">
-              DP
-            </span>
-            <span className="text-lg font-semibold">{APP_NAME}</span>
-          </Link>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{strings.auth.signupTitle}</CardTitle>
-            <p className="text-sm text-[var(--muted-foreground)]">
-              {strings.auth.signupSubtitle}
-            </p>
-          </CardHeader>
-          <CardContent>
-            <AuthForm mode="signup" action={signupAction} next={next} />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <AuthShell
+      title={t.auth.signupTitle}
+      description={t.auth.signupSubtitle}
+    >
+      <AuthForm
+        mode="signup"
+        action={signupAction}
+        oauthAction={signInWithOAuthAction}
+        providers={{ google: settings.google, github: settings.github }}
+        configured={isSupabaseConfigured()}
+        next={params.next}
+        urlError={params.error}
+      />
+    </AuthShell>
   );
 }

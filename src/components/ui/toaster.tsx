@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Toaster } from "sonner";
 
-/** Toast host that follows the DevPulse theme instead of the OS preference. */
+/** Toast host that follows the DevReaderHub theme instead of the OS preference. */
 export function AppToaster() {
   const [theme, setTheme] = React.useState<"dark" | "light">("dark");
 
@@ -14,8 +14,8 @@ export function AppToaster() {
       );
     };
     apply();
-    window.addEventListener("devpulse-theme-change", apply);
-    return () => window.removeEventListener("devpulse-theme-change", apply);
+    window.addEventListener("devreaderhub-theme-change", apply);
+    return () => window.removeEventListener("devreaderhub-theme-change", apply);
   }, []);
 
   return (

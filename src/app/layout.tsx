@@ -4,7 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppToaster } from "@/components/ui/toaster";
 import { themeInitScript } from "@/components/theme/theme-script";
-import { APP_NAME, APP_TAGLINE } from "@/lib/categories";
+import { LanguageProvider } from "@/lib/i18n/client";
+import { getDictionaryForRequest, getLanguage } from "@/lib/i18n/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,15 +17,39 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  ),
   title: {
-    default: `${APP_NAME} — ${APP_TAGLINE}`,
-    template: `%s · ${APP_NAME}`,
+    default: "DevReaderHub",
+    template: `%s · DevReaderHub`,
   },
   description:
-    "DevPulse collects developer technology news from reliable sources, organises it by category and adds optional AI-powered Bangla analysis.",
-  applicationName: APP_NAME,
+    "DevReaderHub collects developer technology news from reliable sources, organises it by category and adds optional AI-powered Bangla analysis.",
+  applicationName: "DevReaderHub",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "512x512" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+  },
 };
+
+/** Social preview metadata follows the interface language. */
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionaryForRequest();
+
+  return {
+    ...baseMetadata,
+    openGraph: {
+      title: `DevReaderHub — ${t.app.tagline}`,
+      description: t.app.description,
+      images: ["/dev-reader-hub.jpg"],
+      type: "website",
+      siteName: "DevReaderHub",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: [
@@ -33,14 +58,18 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // The interface language is stored in a cookie so the server renders the
+  // correct locale on the first paint (no flash, no hydration mismatch).
+  const language = await getLanguage();
+
   return (
-    <html lang="bn" className={`${geistSans.variable} ${geistMono.variable} dark`}>
+    <html lang={language} className={`${geistSans.variable} ${geistMono.variable} dark`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="min-h-dvh bg-[var(--background)] text-[var(--foreground)] antialiased">
-        {children}
+        <LanguageProvider initialLanguage={language}>{children}</LanguageProvider>
         <AppToaster />
       </body>
     </html>

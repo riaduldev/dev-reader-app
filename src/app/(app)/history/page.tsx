@@ -6,27 +6,33 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { listHistory } from "@/lib/db/user";
+import { describeDbError, getSchemaStatus, isMissingSchemaError } from "@/lib/db/schema";
+import { SchemaSetupNotice } from "@/components/setup/schema-setup-notice";
 import { getSession } from "@/lib/auth/session";
 import { isConfigured } from "@/lib/env";
-import { relativeTimeBn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils";
+import { getDictionaryForRequest, getLanguage } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: "পঠন ইতিহাস",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDictionaryForRequest();
+  return { title: t.nav.history };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function HistoryPage() {
   const session = await getSession();
+  const t = await getDictionaryForRequest();
+  const language = await getLanguage();
 
   if (!session.user) {
     return (
       <div className="space-y-6">
-        <PageHeader title="পঠন ইতিহাস" />
+        <PageHeader title={t.nav.history} />
         <EmptyState
-          title="সাইন ইন করতে হবে"
-          description="আপনার পঠন ইতিহাস দেখতে DevPulse অ্যাকাউন্টে সাইন ইন করুন।"
-          action={{ label: "লগইন", href: "/login?next=/history" }}
+          title={t.empty.signInRequiredTitle}
+          description={t.empty.signInRequiredBody}
+          action={{ label: t.common.login, href: "/login?next=/history" }}
         />
       </div>
     );
@@ -34,28 +40,38 @@ export default async function HistoryPage() {
 
   let history: Awaited<ReturnType<typeof listHistory>> = [];
   let error: string | null = null;
+  let schemaMissing = false;
 
   if (isConfigured("supabase")) {
     try {
       history = await listHistory(session.user.id);
     } catch (err) {
-      error = err instanceof Error ? err.message : "পঠন ইতিহাস লোড করা যায়নি।";
+      schemaMissing = isMissingSchemaError(err);
+      error = schemaMissing
+        ? await describeDbError(err)
+        : err instanceof Error
+          ? err.message
+          : t.errors.articlesLoad;
     }
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="পঠন ইতিহাস"
-        description="আপনি যে নিবন্ধগুলো পড়েছেন সেগুলোর তালিকা।"
+        title={t.nav.history}
+        description={t.empty.historyBody}
         actions={
           <Button asChild variant="outline" size="sm">
-            <Link href="/settings">ইতিহাস মুছুন</Link>
+            <Link href="/settings">{t.settings.clearHistory}</Link>
           </Button>
         }
       />
 
-      {error && (
+      {schemaMissing && (
+        <SchemaSetupNotice initialStatus={await getSchemaStatus()} />
+      )}
+
+      {error && !schemaMissing && (
         <p className="rounded-lg border border-[var(--danger)]/40 bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">
           {error}
         </p>
@@ -63,9 +79,9 @@ export default async function HistoryPage() {
 
       {history.length === 0 ? (
         <EmptyState
-          title="এখনো কোনো নিবন্ধ পড়া হয়নি"
-          description="আপনি যে নিবন্ধগুলো খুলবেন সেগুলো এখানে সাজানো হবে।"
-          action={{ label: "সর্বশেষ খবর দেখুন", href: "/news" }}
+          title={t.empty.historyTitle}
+          description={t.empty.historyBody}
+          action={{ label: t.empty.historyAction, href: "/news" }}
         />
       ) : (
         <div className="space-y-3">
@@ -73,7 +89,7 @@ export default async function HistoryPage() {
             entry.articles ? (
               <div key={entry.id} className="space-y-1">
                 <p className="text-xs text-[var(--muted-foreground)]">
-                  {relativeTimeBn(entry.viewed_at)} পড়েছেন
+                  {formatRelativeTime(entry.viewed_at, language)}
                 </p>
                 <ArticleCard
                   article={entry.articles}

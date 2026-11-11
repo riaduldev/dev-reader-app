@@ -1,7 +1,8 @@
 import { ArticleListSkeleton } from "@/components/news/article-card";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function Loading() {
+/** Shared loading skeleton for the dashboard-style pages. */
+export function PageSkeleton() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">

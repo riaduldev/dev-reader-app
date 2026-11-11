@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-export const THEME_STORAGE_KEY = "devpulse-theme";
+export const THEME_STORAGE_KEY = "devreaderhub-theme";
 
 export type ThemePreference = "dark" | "light" | "system";
 

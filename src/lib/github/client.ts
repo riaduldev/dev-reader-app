@@ -65,7 +65,7 @@ function headers(): Record<string, string> {
   const base: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
-    "User-Agent": "DevPulse/0.1 (+https://github.com)",
+    "User-Agent": "DevReaderHub/0.1 (+https://github.com)",
   };
   const token = env().GITHUB_TOKEN;
   if (token) {

@@ -92,7 +92,7 @@ function parseArbeitnow(json: unknown): JsonApiResult {
 
 /**
  * Fetches a JSON API source. Only officially published, public APIs are used —
- * DevPulse never scrapes HTML pages that lack a feed or API.
+ * DevReaderHub never scrapes HTML pages that lack a feed or API.
  */
 export async function fetchJsonApiItems(
   url: string,

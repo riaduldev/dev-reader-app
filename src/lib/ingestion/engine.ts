@@ -76,7 +76,7 @@ interface SourceResult {
   error: string | null;
 }
 
-/** Raised for sources DevPulse intentionally does not collect from. */
+/** Raised for sources DevReaderHub intentionally does not collect from. */
 class UnsupportedSourceError extends Error {
   constructor(message: string) {
     super(message);
@@ -120,7 +120,7 @@ async function collectSource(
     raw = api.items;
   } else {
     throw new UnsupportedSourceError(
-      `Source "${source.name}" is an index-only source without a machine-readable feed. DevPulse does not scrape it.`,
+      `Source "${source.name}" is an index-only source without a machine-readable feed. DevReaderHub does not scrape it.`,
     );
   }
 
@@ -253,9 +253,14 @@ async function runAiAnalysis(): Promise<{ processed: number; failed: number }> {
         model: e.OPENAI_MODEL,
       });
       processed += 1;
-    } catch {
+    } catch (error) {
       // A failed analysis never fabricates content: the article stays
-      // unprocessed and can be retried on the next run.
+      // unprocessed and can be retried on the next run. The reason is logged
+      // on the server so quota/auth problems stay diagnosable.
+      console.error(
+        `[ai] analysis failed for article ${article.id}:`,
+        error instanceof Error ? error.message : error,
+      );
       failed += 1;
     }
   }

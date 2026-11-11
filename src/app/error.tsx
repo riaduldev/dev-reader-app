@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function GlobalError({
@@ -13,6 +14,8 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
+
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -25,9 +28,9 @@ export default function GlobalError({
             <AlertTriangle className="size-5" />
           </span>
           <div className="space-y-1">
-            <p className="font-medium">একটি সমস্যা হয়েছে</p>
+            <p className="font-medium">{t.common.error}</p>
             <p className="text-sm text-[var(--muted-foreground)]">
-              পেজটি লোড করার সময় অপ্রত্যাশিত ত্রুটি ঘটেছে।
+              {t.errors.generic}
             </p>
             {error.digest && (
               <p className="font-mono text-xs text-[var(--muted-foreground)]">
@@ -35,7 +38,7 @@ export default function GlobalError({
               </p>
             )}
           </div>
-          <Button onClick={reset}>আবার চেষ্টা করুন</Button>
+          <Button onClick={reset}>{t.common.retry}</Button>
         </CardContent>
       </Card>
     </div>

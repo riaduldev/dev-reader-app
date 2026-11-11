@@ -1,6 +1,9 @@
+"use client";
+
 import { ArticleCard } from "@/components/news/article-card";
 import { Pagination } from "@/components/news/pagination";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useT } from "@/lib/i18n/client";
 import type { ArticleListResult } from "@/lib/db/articles";
 
 export function NewsFeed({
@@ -16,11 +19,13 @@ export function NewsFeed({
   canBookmark?: boolean;
   bookmarkedIds?: string[];
 }) {
+  const t = useT();
+
   if (result.items.length === 0) {
     return (
       <EmptyState
-        title="কোনো নিবন্ধ পাওয়া যায়নি"
-        description="ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন, অথবা অ্যাডমিন প্যানেল থেকে সিঙ্ক চালান।"
+        title={t.empty.filterTitle}
+        description={t.empty.filterBody}
       />
     );
   }
@@ -30,7 +35,8 @@ export function NewsFeed({
   return (
     <div className="space-y-4">
       <p className="text-xs text-[var(--muted-foreground)]">
-        মোট {result.total} টি নিবন্ধ · পৃষ্ঠা {result.page}/{result.totalPages}
+        {t.common.total} {result.total} {t.common.results} · {t.common.page}{" "}
+        {result.page}/{result.totalPages}
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         {result.items.map((article) => (

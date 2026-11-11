@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { relativeTimeBn } from "@/lib/utils";
+import { formatRelativeTime } from "@/lib/utils";
+import { useT, useLanguage } from "@/lib/i18n/client";
 
 interface NotificationItem {
   id: string;
@@ -32,6 +33,8 @@ export function NotificationsBell({
   initialNotifications: NotificationItem[];
   enabled: boolean;
 }) {
+  const t = useT();
+  const [language] = useLanguage();
   const [notifications, setNotifications] = React.useState(initialNotifications);
   const unread = notifications.filter((item) => !item.read_at).length;
 
@@ -39,16 +42,16 @@ export function NotificationsBell({
     if (!enabled) return;
     try {
       const response = await fetch("/api/notifications/read", { method: "POST" });
-      if (!response.ok) throw new Error("অনুরোধ ব্যর্থ।");
+      if (!response.ok) throw new Error(t.errors.generic);
       setNotifications((items) =>
         items.map((item) => ({
           ...item,
           read_at: item.read_at ?? new Date().toISOString(),
         })),
       );
-      toast.success("সব নোটিফিকেশন পঠিত হিসেবে চিহ্নিত হয়েছে।");
+      toast.success(t.common.markAllRead);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "অনুরোধ ব্যর্থ।");
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
     }
   };
 
@@ -59,8 +62,8 @@ export function NotificationsBell({
           variant="ghost"
           size="icon"
           className="relative"
-          aria-label="নোটিফিকেশন"
-          title="নোটিফিকেশন"
+          aria-label={t.common.notifications}
+          title={t.common.notifications}
         >
           <Bell className="size-4" />
           {unread > 0 && (
@@ -71,11 +74,11 @@ export function NotificationsBell({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>নোটিফিকেশন</DropdownMenuLabel>
+        <DropdownMenuLabel>{t.common.notifications}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {notifications.length === 0 ? (
           <p className="px-2 py-6 text-center text-sm text-[var(--muted-foreground)]">
-            কোনো নোটিফিকেশন নেই।
+            {t.common.noNotifications}
           </p>
         ) : (
           <div className="max-h-72 overflow-y-auto scrollbar-thin">
@@ -110,7 +113,7 @@ export function NotificationsBell({
                     </span>
                   )}
                   <span className="text-[11px] text-[var(--muted-foreground)]">
-                    {relativeTimeBn(item.created_at)}
+                    {formatRelativeTime(item.created_at, language)}
                   </span>
                 </a>
               </DropdownMenuItem>
@@ -121,7 +124,7 @@ export function NotificationsBell({
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={markAllRead}>
-              সব পঠিত হিসেবে চিহ্নিত করুন
+              {t.common.markAllRead}
             </DropdownMenuItem>
           </>
         )}

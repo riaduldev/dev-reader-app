@@ -1,4 +1,5 @@
-import { CATEGORY_MAP, type CategoryId } from "@/lib/categories";
+import { type CategoryId } from "@/lib/categories";
+import type { Dictionary } from "@/lib/i18n/types";
 
 export interface ImportanceInput {
   title: string;
@@ -27,7 +28,9 @@ export function scoreImportance(input: ImportanceInput): number {
     opensource: 2,
     jobs: 1,
   };
-  const category = (input.category in categoryBase ? input.category : "industry") as CategoryId;
+  const category = (input.category in categoryBase
+    ? input.category
+    : "industry") as CategoryId;
   let score = categoryBase[category];
 
   const highImpactTerms = [
@@ -73,25 +76,13 @@ export function scoreImportance(input: ImportanceInput): number {
   return Math.min(5, Math.max(1, Math.round(score)));
 }
 
-export function importanceLabel(score: number | null | undefined): string {
-  if (!score) return "অজানা";
-  if (score >= 5) return "অত্যন্ত গুরুত্বপূর্ণ";
-  if (score === 4) return "গুরুত্বপূর্ণ";
-  if (score === 3) return "মাঝারি গুরুত্বপূর্ণ";
-  if (score === 2) return "সাধারণ";
-  return "কম গুরুত্বপূর্ণ";
+/** Localised importance label. */
+export function importanceLabel(
+  score: number | null | undefined,
+  t: Dictionary,
+): string {
+  if (!score) return t.common.empty;
+  const labels = t.article.importanceLabels as Record<string, string>;
+  return labels[String(score)] ?? t.common.empty;
 }
 
-export function importanceLabelEn(score: number | null | undefined): string {
-  if (!score) return "Unrated";
-  if (score >= 5) return "Critical";
-  if (score === 4) return "Important";
-  if (score === 3) return "Notable";
-  if (score === 2) return "Minor";
-  return "Low";
-}
-
-export function categoryColor(category: string): string {
-  const hue = CATEGORY_MAP[category as CategoryId]?.hue ?? 220;
-  return `hsl(${hue} 70% 55%)`;
-}

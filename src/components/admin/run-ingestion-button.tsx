@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
+import { format } from "@/lib/i18n";
 
 export function RunIngestionButton() {
+  const t = useT();
   const [loading, setLoading] = React.useState(false);
   const router = useRouter();
 
@@ -26,13 +29,18 @@ export function RunIngestionButton() {
         failedSources?: number;
         aiProcessed?: number;
       };
-      if (!response.ok) throw new Error(json.error ?? "সিঙ্ক ব্যর্থ।");
+      if (!response.ok) throw new Error(json.error ?? t.errors.generic);
       toast.success(
-        `সিঙ্ক সম্পন্ন — ${json.okSources ?? 0} সোর্স সফল, ${json.failedSources ?? 0} ব্যর্থ, ${json.newArticles ?? 0} নতুন নিবন্ধ, AI বিশ্লেষণ ${json.aiProcessed ?? 0}।`,
+        format(t.dashboard.runSummary, {
+          status: `${json.okSources ?? 0} ok / ${json.failedSources ?? 0} failed`,
+          articles: String(json.newArticles ?? 0),
+          ok: String(json.okSources ?? 0),
+          total: String((json.okSources ?? 0) + (json.failedSources ?? 0)),
+        }),
       );
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "সিঙ্ক ব্যর্থ।");
+      toast.error(error instanceof Error ? error.message : t.errors.generic);
     } finally {
       setLoading(false);
     }
@@ -40,8 +48,12 @@ export function RunIngestionButton() {
 
   return (
     <Button onClick={run} size="sm" disabled={loading}>
-      {loading ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
-      সব সোর্স সিঙ্ক করুন
+      {loading ? (
+        <Loader2 className="size-4 animate-spin" />
+      ) : (
+        <Play className="size-4" />
+      )}
+      {t.admin.syncAll}
     </Button>
   );
 }

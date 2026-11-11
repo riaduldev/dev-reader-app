@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth/session";
 import { isConfigurationError } from "@/lib/supabase/server";
+import { getDictionaryForRequest } from "@/lib/i18n/server";
 import { toggleBookmark } from "@/lib/db/user";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const t = await getDictionaryForRequest();
   const session = await getSession();
   if (!session.user) {
     return NextResponse.json(
-      { error: "সংরক্ষণ করতে সাইন ইন করতে হবে।" },
+      { error: t.empty.signInRequiredTitle },
       { status: 401 },
     );
   }

@@ -1,58 +1,72 @@
+"use client";
+
 import { ExternalLink, Flame, Tag } from "lucide-react";
 import Link from "next/link";
+
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { BookmarkButton } from "@/components/news/bookmark-button";
 import { ArticleLink } from "@/components/news/article-link";
 import { categoryLabel } from "@/lib/categories";
+import { useLanguage, useT } from "@/lib/i18n/client";
 import type { DatabaseArticle } from "@/lib/db/types";
 import { importanceLabel } from "@/lib/ingestion/importance";
-import { relativeTimeBn, truncate } from "@/lib/utils";
+import { formatRelativeTime, truncate } from "@/lib/utils";
 
 export function ArticleCard({
   article,
   bookmarked = false,
   canBookmark = false,
-  showAi = true,
 }: {
   article: DatabaseArticle;
   bookmarked?: boolean;
+  /** True when a visitor is signed in (bookmarking requires an account). */
   canBookmark?: boolean;
-  showAi?: boolean;
 }) {
+  const t = useT();
+  const [language] = useLanguage();
+
   const summary = article.ai_summary_bn ?? article.description;
   const tags = (article.ai_tags ?? []).slice(0, 4);
 
   return (
     <Card className="group flex flex-col gap-3 p-4 transition-colors hover:border-[var(--border-strong)] sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="secondary">{categoryLabel(article.category)}</Badge>
+        <Badge variant="secondary">{categoryLabel(article.category, t)}</Badge>
         {article.importance ? (
           <Badge
-            variant={article.importance >= 4 ? "danger" : article.importance === 3 ? "warning" : "outline"}
+            variant={
+              article.importance >= 4
+                ? "danger"
+                : article.importance === 3
+                  ? "warning"
+                  : "outline"
+            }
           >
             {article.importance >= 4 && <Flame className="size-3" />}
-            {importanceLabel(article.importance)}
+            {importanceLabel(article.importance, t)}
           </Badge>
         ) : null}
         {article.ai_fact_status && (
-          <Badge variant={article.ai_fact_status === "confirmed" ? "success" : "outline"}>
+          <Badge
+            variant={article.ai_fact_status === "confirmed" ? "success" : "outline"}
+          >
             {article.ai_fact_status === "confirmed"
-              ? "সোর্স নিশ্চিত"
+              ? t.article.factsConfirmed
               : article.ai_fact_status === "reported"
-                ? "রিপোর্ট করা"
-                : "অযাচাইকৃত"}
+                ? t.article.factsReported
+                : t.article.factsUnverified}
           </Badge>
         )}
         <span className="text-xs text-[var(--muted-foreground)]">
-          {article.sources?.name ?? "অজানা সোর্স"}
+          {article.sources?.name ?? "—"}
         </span>
         <span className="text-xs text-[var(--muted-foreground)]">·</span>
         <time
           className="text-xs text-[var(--muted-foreground)]"
           dateTime={article.published_at}
         >
-          {relativeTimeBn(article.published_at)}
+          {formatRelativeTime(article.published_at, language)}
         </time>
       </div>
 
@@ -95,7 +109,7 @@ export function ArticleCard({
             href={`/article/${article.id}`}
             className="text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--accent)]"
           >
-            বিস্তারিত
+            {t.common.details}
           </Link>
           <a
             href={article.url}
@@ -103,17 +117,16 @@ export function ArticleCard({
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--accent)]"
           >
-            মূল নিবন্ধ
+            {t.common.originalArticle}
             <ExternalLink className="size-3.5" />
           </a>
         </div>
-        {canBookmark && (
-          <BookmarkButton
-            articleId={article.id}
-            initialBookmarked={bookmarked}
-            showAi={showAi}
-          />
-        )}
+        <BookmarkButton
+          articleId={article.id}
+          initialBookmarked={bookmarked}
+          signedIn={canBookmark}
+          articlePath={`/article/${article.id}`}
+        />
       </div>
     </Card>
   );
@@ -141,16 +154,5 @@ export function ArticleListSkeleton({ count = 6 }: { count?: number }) {
         <ArticleCardSkeleton key={index} />
       ))}
     </div>
-  );
-}
-
-export function CategoryLink({ category }: { category: string }) {
-  return (
-    <Link
-      href={`/category/${category}`}
-      className="text-xs font-medium text-[var(--muted-foreground)] underline-offset-4 transition-colors hover:text-[var(--accent)] hover:underline"
-    >
-      {categoryLabel(category)}
-    </Link>
   );
 }

@@ -1,8 +1,11 @@
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 export interface PaginationProps {
@@ -27,19 +30,18 @@ function buildHref(
 }
 
 export function Pagination({ page, totalPages, basePath, params }: PaginationProps) {
+  const t = useT();
   if (totalPages <= 1) return null;
 
   const pages = Array.from({ length: totalPages }, (_, index) => index + 1).filter(
     (candidate) =>
-      candidate === 1 ||
-      candidate === totalPages ||
-      Math.abs(candidate - page) <= 1,
+      candidate === 1 || candidate === totalPages || Math.abs(candidate - page) <= 1,
   );
 
   return (
     <nav
       className="flex flex-wrap items-center justify-between gap-3 pt-2"
-      aria-label="পেজিনেশন"
+      aria-label={t.common.page}
     >
       <Button
         asChild
@@ -50,7 +52,7 @@ export function Pagination({ page, totalPages, basePath, params }: PaginationPro
       >
         <Link href={buildHref(basePath, params, Math.max(1, page - 1))}>
           <ChevronLeft className="size-4" />
-          আগের
+          {t.common.previous}
         </Link>
       </Button>
 
@@ -88,7 +90,7 @@ export function Pagination({ page, totalPages, basePath, params }: PaginationPro
         className={cn(page >= totalPages && "pointer-events-none opacity-50")}
       >
         <Link href={buildHref(basePath, params, Math.min(totalPages, page + 1))}>
-          পরের
+          {t.common.next}
           <ChevronRight className="size-4" />
         </Link>
       </Button>

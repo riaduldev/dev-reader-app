@@ -39,7 +39,7 @@ export interface GithubCollectOptions {
  * Collects repository candidates through the GitHub Search REST API.
  *
  * These are *search results*, not GitHub's official Trending ranking — the
- * UI labels them with the DevPulse score instead.
+ * UI labels them with the DevReaderHub score instead.
  */
 export async function collectGithubRepositories(
   options: GithubCollectOptions = {},

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { listArticles } from "@/lib/db/articles";
 import { isConfigurationError } from "@/lib/supabase/server";
+import { describeDbError, isMissingSchemaError } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +32,19 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    const status = isConfigurationError(error) ? 503 : 500;
+    const status = isConfigurationError(error)
+      ? 503
+      : isMissingSchemaError(error)
+        ? 503
+        : 500;
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Search failed." },
+      {
+        error: isMissingSchemaError(error)
+          ? describeDbError(error)
+          : error instanceof Error
+            ? error.message
+            : "Search failed.",
+      },
       { status },
     );
   }
